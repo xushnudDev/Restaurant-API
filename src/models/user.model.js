@@ -32,6 +32,14 @@ const userSchema = new mongoose.Schema({
         type: mongoose.SchemaTypes.String,
         enum: ["user", "admin","owner"],
         default: "user",
+    },
+    tokens: {
+        accessToken: {
+            type: mongoose.SchemaTypes.String,
+        },
+        refreshToken: {
+            type: mongoose.SchemaTypes.String,
+        },
     }
 },{
     collection: "users",

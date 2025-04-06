@@ -2,6 +2,8 @@ import {hash,compare} from 'bcrypt';
 import userModel from '../models/user.model.js';
 import {BaseException} from "../exceptions/base.exception.js";
 import { isValidObjectId } from 'mongoose';
+import jwt from "jsonwebtoken"
+import { ACCESS_TOKEN_EXPIRE_TIME, ACCESS_TOKEN_SECRET_KEY, REFRESH_TOKEN_EXPIRE_TIME, REFRESH_TOKEN_SECRET_KEY } from '../config/jwt.config.js';
 
 const registerUser = async (request,response,next) => {
     try {
@@ -51,14 +53,68 @@ const loginUser = async (request,response,next) => {
             throw new BaseException("Invalid email or password", 401);
         };
 
+        const accessToken = jwt.sign({id: user.id, role: user.role},ACCESS_TOKEN_SECRET_KEY, {
+            expiresIn: ACCESS_TOKEN_EXPIRE_TIME,
+            algorithm: "HS256",
+        });
+        const refreshToken = jwt.sign({id: user.id, role: user.role}, REFRESH_TOKEN_SECRET_KEY, {
+            expiresIn: REFRESH_TOKEN_EXPIRE_TIME,
+            algorithm: "HS256",
+        });
+
         response.status(200).send({
             message: "User logged in successfully",
+            tokens: {
+                accessToken,
+                refreshToken,
+            },
             data: user,
         });
     } catch (error) {
         next(error);
     }
 };
+
+const refresh = async (request,response,next) => {
+    try {
+        const {refreshToken} = request.body;
+
+        if (!refreshToken) {
+            throw new BaseException("Refresh token is required", 401);
+        };
+
+        const data = jwt.verify(refreshToken,REFRESH_TOKEN_SECRET_KEY);
+        if (!data) {
+            throw new BaseException("Invalid refresh token", 401);
+        };
+        const newAccessToken = jwt.sign({id: data.id, role: data.role}, ACCESS_TOKEN_SECRET_KEY,{
+            expiresIn: ACCESS_TOKEN_EXPIRE_TIME,
+            algorithm: "HS256",
+        });
+        const newRefreshToken = jwt.sign({id: data.id, role: data.role}, REFRESH_TOKEN_SECRET_KEY,{
+            expiresIn: REFRESH_TOKEN_SECRET_KEY,
+            algorithm: "HS256",
+        });
+        response.status(200).send({
+            message: "Access token refreshed successfully",
+            tokens: {
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken,
+            },
+        });
+    } catch (error) {
+        if (error instanceof jwt.JsonWebTokenError) {
+            next(BaseException("Invalid refresh token", 401));
+        } else if (error instanceof jwt.TokenExpiredError) {
+            next(BaseException("Refresh token expired", 401));
+        } else if (error instanceof jwt.NotBeforeError) {
+            next(BaseException("Refresh token not valid before", 401));
+        } else {
+            next(error);
+        }
+    }
+
+}
 
 const getAllUsers = async (request, response,next) => {
     try {
@@ -134,4 +190,4 @@ const deleteUser = async (request, response, next) => {
     }
 };
 
-export default {registerUser, loginUser, getAllUsers, getUserById, updateUser, deleteUser};
+export default {registerUser, loginUser,refresh,getAllUsers, getUserById, updateUser, deleteUser};
