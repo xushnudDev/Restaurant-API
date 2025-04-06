@@ -63,9 +63,7 @@
     - password
 
     - role
-
-    - imageUrl
-
+    
     - createdAt
 
     - updatedAt
