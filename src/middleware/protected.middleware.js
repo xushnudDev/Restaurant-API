@@ -5,14 +5,18 @@ import jwt from "jsonwebtoken";
 export const ProtectedMiddleware = (isProtected) => {
     return (request,_,next) => {
         if (!isProtected) {
+            
             request.role = "user";
             return next();
         }
         const token = request.headers["authorization"];
+        
+        
         if (!token) {
             throw new BaseException("Access token is missing", 401);
         }
         const accessToken = token.split(" ")[1];
+        
 
         try {
             const decodedDate = jwt.verify(accessToken,ACCESS_TOKEN_SECRET_KEY);

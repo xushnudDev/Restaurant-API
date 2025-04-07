@@ -43,8 +43,8 @@ export const getMealById = async (request,response,next) => {
 
 export const createMeal = async (request,response,next) => {
     try {
-        const {name, price, description, category, imageUrl} = request.body;
-        if (!name ||!price ||!description ||!category ||!imageUrl) {
+        const {name, price, description, category} = request.body;
+        if (!name ||!price ||!description ||!category) {
             throw new BaseException("Missing required fields", 400);
         };
         const categoryExists = await categoryModel.findById(category);
@@ -54,7 +54,7 @@ export const createMeal = async (request,response,next) => {
         if (isNaN(price)) {
             throw new BaseException("Invalid price", 400);
         }
-        const newMeal = new mealModel({ name, price, description, category, imageUrl });
+        const newMeal = new mealModel({ name, price, description, category});
         await newMeal.save();
 
         await categoryModel.updateOne({_id: category},{
@@ -79,8 +79,8 @@ export const updateMeal = async (request,response,next) => {
         if (!mongoose.Types.ObjectId.isValid(id)) {
             throw new BaseException("Invalid meal ID", 400);
         };
-        const {name, price, description, category, imageUrl} = request.body;
-        if (!name &&!price &&!description &&!category &&!imageUrl) {
+        const {name, price, description, category} = request.body;
+        if (!name &&!price &&!description &&!category) {
             throw new BaseException("No data to update", 400);
         };
         const meal = await mealModel.findById(id);
